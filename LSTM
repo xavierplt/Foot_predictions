@@ -1,0 +1,83 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Masking
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
+
+# --- 1. Define Hyperparameters (Adjust as needed!) ---
+# SEQUENCE_LENGTH = T: Length of the sequence (e.g., use the last 10 matches)
+SEQUENCE_LENGTH = 10 
+# N_FEATURES: Number of features per match (e.g., score, possession, shots on target, etc.)
+N_FEATURES = 15 
+# N_CLASSES: Number of output classes (3 for Win/Draw/Loss)
+N_CLASSES = 3 
+# LSTM_UNITS: Number of neurons in the LSTM layer
+LSTM_UNITS = 64
+# LEARNING_RATE: Learning rate for the Adam optimizer
+LEARNING_RATE = 0.001
+
+# --- 2. Define the Sequential Model Architecture ---
+def create_lstm_model(seq_len, n_features, n_classes, lstm_units, lr):
+    
+    # [Image of a LSTM network structure]
+    
+    model = Sequential([
+        # Layer 1: Masking (Optional but useful for variable-length sequences/missing data)
+        # This ignores padded values (e.g., zeros) added to standardize sequence lengths.
+        Masking(mask_value=0., input_shape=(seq_len, n_features)),
+        
+        # Layer 2: LSTM
+        # return_sequences=False because we want the final state to summarize the entire sequence.
+        LSTM(lstm_units, return_sequences=False, activation='tanh'),
+        
+        # Layer 3: Dropout (Regularization)
+        # Helps prevent the model from overfitting on training data.
+        Dropout(0.3),
+        
+        # Layer 4: Hidden Dense Layer
+        Dense(32, activation='relu'),
+        
+        # Layer 5: Output Layer (Classification)
+        # 3 neurons for multi-class classification (Team A Win, Draw, Team B Win)
+        Dense(n_classes, activation='softmax')
+    ])
+    
+    # --- 3. Compile the Model ---
+    # Loss: 'categorical_crossentropy' is used because the output should be one-hot encoded (3 classes).
+    # Optimizer: Adam with a specified learning rate.
+    model.compile(
+        optimizer=Adam(learning_rate=lr),
+        loss='categorical_crossentropy',
+        metrics=['accuracy']
+    )
+    
+    return model
+
+# Create an instance of the model
+model = create_lstm_model(SEQUENCE_LENGTH, N_FEATURES, N_CLASSES, LSTM_UNITS, LEARNING_RATE)
+
+# Display the model summary to check dimensions
+model.summary()
+
+# --- 4. Data Preparation Concept (Crucial Step Outside the Model) ---
+# *This is conceptual guidance, not the complete data loading code.*
+
+# Your input data (X) must be reshaped into the 3D format required by LSTM:
+# (Number of Samples, Sequence Length, Number of Features)
+# X_train_reshaped = np.reshape(X_train_raw, (num_samples, SEQUENCE_LENGTH, N_FEATURES))
+
+# Your output labels (Y) must be converted to One-Hot Encoding:
+# Y_train_one_hot = tf.keras.utils.to_categorical(Y_train_raw, num_classes=N_CLASSES)
+
+
+# --- 5. Training Example ---
+# callbacks = [EarlyStopping(monitor='val_loss', patience=10)]
+# model.fit(
+#     X_train_reshaped, 
+#     Y_train_one_hot, 
+#     epochs=100, 
+#     batch_size=32, 
+#     validation_split=0.2, 
+#     callbacks=callbacks
+# )
