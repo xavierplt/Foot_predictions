@@ -4,11 +4,51 @@ from Preprocessing import DataProcessor
 from Model import build_lstm_model
 from tensorflow.keras.callbacks import EarlyStopping
 import os
+import matplotlib.pyplot as plt
+
+def plot_results(history):
+    """
+    Affiche les courbes d'apprentissage (Loss et Accuracy).
+    """
+    # Récupération des données dans l'historique
+    acc = history.history['accuracy']
+    val_acc = history.history['val_accuracy']
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    epochs_range = range(len(acc))
+
+    plt.figure(figsize=(15, 5))
+
+    # --- Graphique 1 : Accuracy (Précision) ---
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs_range, acc, label='Training Accuracy')
+    plt.plot(epochs_range, val_acc, label='Validation Accuracy', linestyle='--')
+    plt.legend(loc='lower right')
+    plt.title('Training and Validation Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.grid(True)
+
+    # --- Graphique 2 : Loss (Erreur) ---
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs_range, loss, label='Training Loss')
+    plt.plot(epochs_range, val_loss, label='Validation Loss', linestyle='--')
+    plt.legend(loc='upper right')
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss (Categorical Crossentropy)')
+    plt.grid(True)
+
+    plt.show()
 
 def main():
     # 1. Load Data
-    df = fetch_data()
-    
+    try:
+        df = fetch_data()
+    except Exception as e:
+        print(f"❌ Critical Error: {e}")
+        return
+
     # 2. Preprocessing
     processor = DataProcessor()
     # We set save_scaler=True because this is the training phase
@@ -31,7 +71,7 @@ def main():
 
     # 3. Build Model
     model = build_lstm_model()
-    model.summary()
+    # model.summary() # Optionnel si tu veux moins de texte dans la console
 
     # 4. Train
     print("🚀 Starting training...")
@@ -44,6 +84,10 @@ def main():
         validation_data=(X_test, y_test),
         callbacks=callbacks
     )
+
+    # --- NOUVEAU : Affichage des courbes ---
+    print("📈 Affichage des graphiques...")
+    plot_results(history)
 
     # 5. Save Model
     if not os.path.exists('saved_models'):
