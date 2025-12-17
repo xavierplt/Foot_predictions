@@ -1,16 +1,19 @@
-# --- API Settings ---
-API_KEY = "123"  # Public test key from TheSportsDB
-LIGUE_1_ID = "4334" # ID for French Ligue 1
-SEASONS = ["2021-2022", "2022-2023", "2023-2024"]
+# --- FILE PATHS ---
+DATA_PATH = "data/*.csv"
+MODEL_PATH = "saved_models/ligue1_predictor.keras"
+SCALER_PATH = "saved_models/scaler.pkl"
 
-# --- Data Generation Settings ---
-SEQUENCE_LENGTH = 10    # Number of past matches to look at
-N_FEATURES = 15         # Number of features per match
-N_CLASSES = 3           # 0: Loss, 1: Draw, 2: Win
+# --- DATA GENERATION ---
+# We look at the last 10 matches to predict the next one
+SEQUENCE_LENGTH = 10    
+# Features: [Is_Home, Goals_For, Goals_Against, Goal_Diff, Result]
+N_FEATURES = 5          
+# Classes: [Loss, Draw, Win]
+N_CLASSES = 3           
 
-# --- Model Hyperparameters ---
+# --- HYPERPARAMETERS ---
 LSTM_UNITS = 64
 LEARNING_RATE = 0.001
-EPOCHS = 50
+EPOCHS = 30
 BATCH_SIZE = 16
-DROPOUT_RATE = 0.3
+DROPOUT_RATE = 0.2

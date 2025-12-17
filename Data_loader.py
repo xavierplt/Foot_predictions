@@ -1,41 +1,57 @@
-import requests
 import pandas as pd
-import numpy as np
+import glob
 import Config
 
-def fetch_ligue1_data():
+def fetch_data():
     """
-    Fetches Ligue 1 match data for the seasons defined in config.py.
-    Returns: pd.DataFrame containing match history.
+    Loads historical data from local CSV files.
     """
-    all_matches = []
-    print(f"📡 Connecting to TheSportsDB (Seasons: {Config.SEASONS})...")
+    # Find all CSV files in the data folder
+    all_files = glob.glob(Config.DATA_PATH)
+    
+    if not all_files:
+        raise FileNotFoundError(
+            "❌ No CSV files found! "
+            "Please create a 'data' folder and add CSV files from football-data.co.uk"
+        )
 
-    for season in Config.SEASONS:
-        url = f"https://www.thesportsdb.com/api/v1/json/{Config.API_KEY}/eventsseason.php?id={Config.LIGUE_1_ID}&s={season}"
+    print(f"📂 Loading {len(all_files)} CSV files...")
+    matches = []
+    
+    for filename in all_files:
         try:
-            response = requests.get(url)
-            data = response.json()
+            df_csv = pd.read_csv(filename)
             
-            if data['events']:
-                for event in data['events']:
-                    # We only keep matches that have actually been played (have a score)
-                    if event['intHomeScore'] is not None:
-                        match = {
-                            'date': event['dateEvent'],
-                            'home_team': event['strHomeTeam'],
-                            'away_team': event['strAwayTeam'],
-                            'home_score': int(event['intHomeScore']),
-                            'away_score': int(event['intAwayScore']),
-                            # NOTE: The free API does not provide possession/shots data.
-                            # We simulate them here for the sake of the exercise.
-                            'home_shots': np.random.randint(5, 20),
-                            'away_shots': np.random.randint(5, 20),
-                        }
-                        all_matches.append(match)
-        except Exception as e:
-            print(f"⚠️ Error fetching season {season}: {e}")
+            # Check for required columns
+            # FTHG = Full Time Home Goals, FTAG = Full Time Away Goals
+            required_cols = ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG']
+            if not all(col in df_csv.columns for col in required_cols):
+                print(f"⚠️ Skipping {filename} (Missing columns)")
+                continue
 
-    df = pd.DataFrame(all_matches)
-    print(f"✅ Data loaded: {len(df)} matches found.")
+            for _, row in df_csv.iterrows():
+                # Ignore matches that haven't been played (missing scores)
+                if pd.notna(row['FTHG']) and pd.notna(row['FTAG']):
+                    match = {
+                        # 'dayfirst=True' is important for European date formats (DD/MM/YYYY)
+                        'date': pd.to_datetime(row['Date'], dayfirst=True),
+                        'home_team': row['HomeTeam'].strip(),
+                        'away_team': row['AwayTeam'].strip(),
+                        'home_score': int(row['FTHG']),
+                        'away_score': int(row['FTAG'])
+                    }
+                    matches.append(match)
+                    
+        except Exception as e:
+            print(f"⚠️ Error reading {filename}: {e}")
+
+    df = pd.DataFrame(matches)
+    
+    if df.empty:
+        raise ValueError("❌ CSV files are empty or unreadable.")
+
+    # Chronological sort is crucial for LSTM
+    df = df.sort_values('date').reset_index(drop=True)
+    
+    print(f"✅ Data loaded: {len(df)} matches ready.")
     return df
