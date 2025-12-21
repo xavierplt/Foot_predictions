@@ -80,4 +80,4 @@ def predict_match(home_team_name, away_team_name):
 
 if __name__ == "__main__":
     # CHANGE TEAM NAMES HERE TO MATCH YOUR CSV FILE EXACTLY
-    predict_match("Paris SG", "Marseille")
+    predict_match("Toulouse", "Lens")
